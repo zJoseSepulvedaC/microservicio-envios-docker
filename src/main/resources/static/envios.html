@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Seguimiento de Envíos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f4f4;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        select, input, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #info {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        #resultado {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <button onclick="location.href='registrar-envio.html'" style="padding: 10px;">Registrar Nuevo Envío</button>
+    <h2>Seguimiento de Envíos Internacionales</h2>
+
+    <label for="envioSelect">Selecciona un ID de envío:</label>
+    <select id="envioSelect"></select>
+
+    <div id="info">
+        <p><strong>Destinatario:</strong> <span id="destinatario"></span></p>
+        <p><strong>País destino:</strong> <span id="paisDestino"></span></p>
+        <p><strong>Estado:</strong> <span id="estadoActual"></span></p>
+        <p><strong>Ubicación actual:</strong> <span id="ubicacionActual"></span></p>
+
+        <h3>Actualizar envío</h3>
+        <select id="nuevoEstado">
+            <option value="">-- Selecciona estado --</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En tránsito">En tránsito</option>
+            <option value="En aduana">En aduana</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Cancelado">Cancelado</option>
+        </select>
+        <input type="text" id="nuevaUbicacion" placeholder="Nueva ubicación">
+        <button onclick="actualizarEnvio()">Actualizar</button>
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        const select = document.getElementById("envioSelect");
+        const resultado = document.getElementById("resultado");
+
+        function cargarEnvios() {
+            fetch("http://localhost:8080/envios")
+                .then(res => res.json())
+                .then(envios => {
+                    select.innerHTML = "";
+                    envios.forEach(envio => {
+                        const option = document.createElement("option");
+                        option.value = envio.id;
+                        option.textContent = `ID ${envio.id}`;
+                        select.appendChild(option);
+                    });
+                    if (envios.length > 0) {
+                        mostrarEnvio(envios[0].id);
+                    }
+                });
+        }
+
+        function mostrarEnvio(id) {
+            fetch(`http://localhost:8080/envios/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("destinatario").textContent = data.destinatario;
+                    document.getElementById("paisDestino").textContent = data.paisDestino;
+                    document.getElementById("estadoActual").textContent = data.estado;
+                    document.getElementById("ubicacionActual").textContent = data.ubicacionActual;
+                    resultado.innerHTML = "";
+                });
+        }
+
+        function actualizarEnvio() {
+            const id = select.value;
+            const estado = document.getElementById("nuevoEstado").value;
+            const ubicacion = document.getElementById("nuevaUbicacion").value.trim();
+
+            const regexValido = /^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ,.-]{3,}$/;
+
+            if (!ubicacion.match(regexValido)) {
+                resultado.innerHTML = `<p style="color:red;">Ubicación inválida. Solo letras, números y mínimo 3 caracteres.</p>`;
+                return;
+            }
+
+            if (!estado) {
+                resultado.innerHTML = `<p style="color:red;">Selecciona un estado válido.</p>`;
+                return;
+            }
+
+            fetch(`http://localhost:8080/envios/${id}/actualizar?estado=${encodeURIComponent(estado)}&ubicacion=${encodeURIComponent(ubicacion)}`)
+                .then(res => res.text())
+                .then(msg => {
+                    resultado.innerHTML = `<p style="color:green;">${msg}</p>`;
+                    mostrarEnvio(id);
+                    document.getElementById("nuevoEstado").value = "";
+                    document.getElementById("nuevaUbicacion").value = "";
+                })
+                .catch(() => {
+                    resultado.innerHTML = `<p style="color:red;">Error al conectar con el servidor.</p>`;
+                });
+        }
+
+        select.addEventListener("change", function () {
+            mostrarEnvio(this.value);
+        });
+
+        cargarEnvios();
+    </script>
+
+</body>
+</html>

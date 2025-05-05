@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Envío</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 40px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input, select, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        #resultado {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <button onclick="location.href='envios.html'" style="padding: 10px; margin-right: 10px;">Ver Envíos</button>
+
+    <h2>Registrar nuevo envío</h2>
+
+    <form id="formEnvio">
+        <input type="text" id="destinatario" placeholder="Nombre del destinatario" required>
+        <input type="text" id="paisDestino" placeholder="País destino" required>
+
+        <select id="estado">
+            <option value="">-- Selecciona estado inicial --</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En tránsito">En tránsito</option>
+            <option value="En aduana">En aduana</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Cancelado">Cancelado</option>
+        </select>
+
+        <input type="text" id="ubicacionActual" placeholder="Ubicación actual" required>
+
+        <button type="submit">Registrar envío</button>
+    </form>
+
+    <div id="resultado"></div>
+
+    <script>
+        const form = document.getElementById("formEnvio");
+        const resultado = document.getElementById("resultado");
+
+        form.addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const destinatario = document.getElementById("destinatario").value.trim();
+            const paisDestino = document.getElementById("paisDestino").value.trim();
+            const estado = document.getElementById("estado").value.trim();
+            const ubicacionActual = document.getElementById("ubicacionActual").value.trim();
+
+            const regexValido = /^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ ,.-]{3,}$/;
+
+            // Validaciones
+            if (!destinatario || !paisDestino || !estado || !ubicacionActual) {
+                resultado.innerHTML = `<p style="color:red;">Completa todos los campos</p>`;
+                return;
+            }
+
+            if (!destinatario.match(regexValido) || !paisDestino.match(regexValido) || !ubicacionActual.match(regexValido)) {
+                resultado.innerHTML = `<p style="color:red;">Los campos no deben contener símbolos especiales. Mínimo 3 caracteres.</p>`;
+                return;
+            }
+
+            // Enviar datos
+            fetch(`http://localhost:8080/envios/registrar?destinatario=${encodeURIComponent(destinatario)}&paisDestino=${encodeURIComponent(paisDestino)}&estado=${encodeURIComponent(estado)}&ubicacionActual=${encodeURIComponent(ubicacionActual)}`)
+                .then(res => res.text())
+                .then(data => {
+                    resultado.innerHTML = `<p style="color:green;">${data}</p>`;
+                    form.reset();
+                })
+                .catch(() => {
+                    resultado.innerHTML = `<p style="color:red;">Error al conectar con el servidor</p>`;
+                });
+        });
+    </script>
+
+</body>
+</html>
